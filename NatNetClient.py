@@ -1,5 +1,6 @@
 ﻿import socket
 import struct
+import redis 
 from threading import Thread
 
 def trace( *args ):
@@ -31,6 +32,8 @@ class NatNetClient:
         
         # NatNet stream version. This will be updated to the actual version the server is using during initialization.
         self.__natNetStreamVersion = (3,0,0,0)
+
+        self.redis_conn = redis.StrictRedis(host='localhost', port=6379, db=0)
 
     # Client/server message ids
     NAT_PING                  = 0 
@@ -184,6 +187,8 @@ class NatNetClient:
             offset += 12
             trace( "\tMarker", i, ":", pos[0],",", pos[1],",", pos[2] )
 
+
+
         # Rigid body count (4 bytes)
         rigidBodyCount = int.from_bytes( data[offset:offset+4], byteorder='little' )
         offset += 4
@@ -211,6 +216,12 @@ class NatNetClient:
                 id = int.from_bytes( data[offset:offset+4], byteorder='little' )
                 offset += 4
                 pos = Vector3.unpack( data[offset:offset+12] )
+
+                # Record position in redis 
+                # TODO ensure that the marker getting recorded is the correct one 
+                self.redis_conn.set('ball_pos', pos)
+                self.redis_conn.set('ball_time', frameNumber)
+
                 offset += 12
                 size = FloatValue.unpack( data[offset:offset+4] )
                 offset += 4
