@@ -1,11 +1,12 @@
 ﻿import socket
 import struct
 import redis 
+from trajectory import Trajectory
 from threading import Thread
 
 def trace( *args ):
-    print( "".join(map(str,args)) )
-    #pass
+    #print( "".join(map(str,args)) )
+    pass
 
 # Create structs for reading various object types to speed up parsing.
 Vector3 = struct.Struct( '<fff' )
@@ -15,7 +16,10 @@ DoubleValue = struct.Struct( '<d' )
 
 class NatNetClient:
     def __init__( self ):
+
+        self.redis_client = redis.StrictRedis(host="localhost", port=6379, db=0)
         # Change this value to the IP address of the NatNet server.
+        #self.serverIPAddress = "171.64.70.88"
         self.serverIPAddress = "172.24.68.48"
 
         # This should match the multicast address listed in Motive's streaming settings.
@@ -33,7 +37,8 @@ class NatNetClient:
         # NatNet stream version. This will be updated to the actual version the server is using during initialization.
         self.__natNetStreamVersion = (3,0,0,0)
 
-        self.redis_conn = redis.StrictRedis(host='localhost', port=6379, db=0)
+        self.trajectory = Trajectory()
+
 
     # Client/server message ids
     NAT_PING                  = 0 
@@ -85,6 +90,7 @@ class NatNetClient:
         rot = Quaternion.unpack( data[offset:offset+16] )
         offset += 16
         trace( "\tOrientation:", rot[0],",", rot[1],",", rot[2],",", rot[3] )
+        #self.trajectory.push_kuka(pos, rot, frameNumber)
 
         # Marker count (4 bytes)
         markerCount = int.from_bytes( data[offset:offset+4], byteorder='little' )
@@ -186,14 +192,19 @@ class NatNetClient:
             pos = Vector3.unpack( data[offset:offset+12] )
             offset += 12
             trace( "\tMarker", i, ":", pos[0],",", pos[1],",", pos[2] )
-
-            # Record position in redis 
-            # TODO ensure that the marker getting recorded is the correct one 
-            self.redis_conn.set('ball_pos', pos)
-            self.redis_conn.set('ball_time', frameNumber)
-
-
-
+            #print( "\tMarker", i, ":", pos[0],",", pos[1],",", pos[2] )
+            # Only record the position if there is only one marker detected
+            self.trajectory.push_ball(pos, frameNumber)
+            
+            if(pos[0] > -0.5 and pos[0] < 0.5 and pos[1] > -0.5 and pos[1] < 0.5): 
+                print(str(pos[2]) + " " + str(pos[0]) + " " + str(pos[1]))
+                print("yk,kgj.")
+                # NOTE: currently not predicting in Z direction
+                self.trajectory.record_pos([pos[2], pos[0]], frameNumber)
+                x_pred = self.trajectory.calc_trajectory()
+                if x_pred != None:
+                    #self.redis_client.set("cs225a::robot::kuka_iiwa::tasks::ee_pos_des", str(pos[2]) + " " + str(pos[0]) + " " + str(pos[1]))
+                    self.redis_client.set("cs225a::robot::kuka_iiwa::tasks::ee_pos_des", str(x_pred[0]) + " " + str(x_pred[1] + " " + 0.4))
         # Rigid body count (4 bytes)
         rigidBodyCount = int.from_bytes( data[offset:offset+4], byteorder='little' )
         offset += 4
@@ -450,5 +461,7 @@ class NatNetClient:
 
         self.sendCommand( self.NAT_REQUEST_MODELDEF, "", self.commandSocket, (self.serverIPAddress, self.commandPort) )
 
-client = NatNetClient()
-client.run()
+if __name__ == '__main__':
+    client = NatNetClient()
+    client.run()
+
