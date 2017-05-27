@@ -30,7 +30,7 @@ class Trajectory:
         self.positions[self.index, :] = pos[0:2] 
         self.time[self.index, 0] = time
         self.index = (self.index + 1) % MAX_POSITIONS  
-        if self.num_points < MAX_POSITIONS
+        if self.num_points < MAX_POSITIONS:
             self.num_points += 1 
 
     def calc_trajectory(self):
@@ -38,11 +38,12 @@ class Trajectory:
         if self.num_points >= MAX_POSITIONS:
             tx = np.linalg.lstsq(self.time, self.positions[:, 0])
             ty = np.linalg.lstsq(self.time, self.positions[:, 1])
-            cx = tx[0]
-            mx = tx[1]
-            cy = ty[0]
-            my = ty[1]
-            t = -1.0 * cy / my
+            cx = tx[0][1]
+            mx = tx[0][0]
+            cy = ty[0][1]
+            my = ty[0][0]
+            #print(cx, mx, cy, my)
+            t = (0.526 - 1.0 * cx) / mx
             x_pred = mx * t + cx
             y_pred = my * t + cy
             return [x_pred, y_pred]

@@ -195,16 +195,20 @@ class NatNetClient:
             #print( "\tMarker", i, ":", pos[0],",", pos[1],",", pos[2] )
             # Only record the position if there is only one marker detected
             self.trajectory.push_ball(pos, frameNumber)
+
+            self.redis_client.set("ball_pos", str(pos[2]) + " " + str(pos[0]) + " " + str(pos[1]))
             
             if(pos[0] > -0.5 and pos[0] < 0.5 and pos[1] > -0.5 and pos[1] < 0.5): 
-                print(str(pos[2]) + " " + str(pos[0]) + " " + str(pos[1]))
-                print("yk,kgj.")
+                #print(str(pos[2]) + " " + str(pos[0]) + " " + str(pos[1]))
+                #print("yk,kgj.")
                 # NOTE: currently not predicting in Z direction
                 self.trajectory.record_pos([pos[2], pos[0]], frameNumber)
+                print(pos)
                 x_pred = self.trajectory.calc_trajectory()
                 if x_pred != None:
                     #self.redis_client.set("cs225a::robot::kuka_iiwa::tasks::ee_pos_des", str(pos[2]) + " " + str(pos[0]) + " " + str(pos[1]))
-                    self.redis_client.set("cs225a::robot::kuka_iiwa::tasks::ee_pos_des", str(x_pred[0]) + " " + str(x_pred[1] + " " + 0.4))
+                    #self.redis_client.set("cs225a::robot::kuka_iiwa::tasks::ee_pos_des", str(x_pred[0]) + " " + str(x_pred[1]) + " 0.4")
+                    pass
         # Rigid body count (4 bytes)
         rigidBodyCount = int.from_bytes( data[offset:offset+4], byteorder='little' )
         offset += 4
