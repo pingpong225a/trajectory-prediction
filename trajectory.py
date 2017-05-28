@@ -46,7 +46,7 @@ class Trajectory:
             t = (0.526 - 1.0 * cx) / mx
             x_pred = mx * t + cx
             y_pred = my * t + cy
-            return [x_pred, y_pred]
+            return [x_pred, y_pred] if y_pred > -0.5 and y_pred < 0.5 else None        
         return None 
 
     # Record position in redis 
