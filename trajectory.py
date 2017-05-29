@@ -37,14 +37,14 @@ class Trajectory:
     def filter_ball_des(self, a):
         x, y, z = a
         #x = 0.2
-        if y < -0.3:
-            y = -0.3
-        if y > 0.2:
-            y = 0.2
-        if z > 0.7:
-            z = 0.7
-        if z < 0.2:
-            z = 0.2
+        if y < -0.65:
+            y = -0.65
+        if y > -0.45:
+            y = -0.45
+        if z > 0.8:
+            z = 0.8
+        if z < 0.6:
+            z = 0.6
         return [x, y, z]
 
     def calc_trajectory(self):
@@ -63,23 +63,22 @@ class Trajectory:
             #pz2 = tz[0]
             #pz1 = tz[1]
             #pz0 = tz[2]
-            t = (0.526 - 1.0 * cx) / mx
+            t = (0.1 - 1.0 * cx) / mx
             dt = (t - self.time[self.index,0])
             x_pred = mx * t + cx
             y_pred = my * t + cy
-            z_pred = mz * t + cz  - 9.8/2 * dt * dt 
+            z_pred = mz * t + cz
             print("time needed to reach to the prediction pos")
-            print(dt)
             #z_pred = pz2 * t * t + pz1 * t + pz0
             #print (x_pred, y_pred, z_pred)
+            x_pred, y_pred, z_pred = self.filter_ball_des([x_pred, y_pred, z_pred])
             self.pred_hist[self.index][0] = x_pred
             self.pred_hist[self.index][1] = y_pred
             self.pred_hist[self.index][2] = z_pred
-            x_pred = np.mean( self.pred_hist[:,0] ) * 0.3 + 0.7 * x_pred
-            y_pred = np.mean( self.pred_hist[:,1] ) * 0.3 + 0.7 * y_pred
-            z_pred = np.mean( self.pred_hist[:,2] ) * 0.3 + 0.7 * z_pred
+            x_pred = np.mean( self.pred_hist[:,0] ) * 0.9 + 0.1 * x_pred
+            y_pred = np.mean( self.pred_hist[:,1] ) * 0.9 + 0.1 * y_pred
+            z_pred = np.mean( self.pred_hist[:,2] ) * 0.9 + 0.1 * z_pred
              
-            return self.filter_ball_des([x_pred, y_pred, z_pred]) #if y_pred > -0.5 and y_pred < 0.5 else None        
             return [x_pred, y_pred, z_pred] #if y_pred > -0.5 and y_pred < 0.5 else None        
         return None 
 
