@@ -196,21 +196,16 @@ class NatNetClient:
             # Only record the position if there is only one marker detected
             self.trajectory.push_ball(pos, frameNumber)
 
-            self.redis_client.set("ball_pos", str(pos[2]) + " " + str(pos[0]) + " " + str(pos[1]))
-            
-            if(pos[0] > -0.5 and pos[0] < 0.5 and pos[1] > -0.5 and pos[1] < 0.5): 
-                #print(str(pos[2]) + " " + str(pos[0]) + " " + str(pos[1]))
-                #print("yk,kgj.")
+            if(pos[2] > 0.3 and pos[2] < 2.0 and pos[0] > -0.7 and pos[0] < 0.3): 
                 # NOTE: currently not predicting in Z direction
-                self.trajectory.record_pos([pos[2], pos[0]], frameNumber)
-                #print(pos)
+                self.trajectory.record_pos([pos[2], pos[0], pos[1]], frameNumber)
+                self.redis_client.set("ball_pos", str(pos[2]) + " " + str(pos[0]) + " " + str(pos[1]))
                 x_pred = self.trajectory.calc_trajectory()
                 if x_pred != None:
-                    #self.redis_client.set("cs225a::robot::kuka_iiwa::tasks::ee_pos_des", str(pos[2]) + " " + str(pos[0]) + " " + str(pos[1]))
-                    if(pos[0] > -0.5 and pos[0] < 0.5 and pos[1] > -0.5 and pos[1] < 0.5): 
-                        self.redis_client.set("cs225a::robot::kuka_iiwa::tasks::ee_pos_des", str(x_pred[0]) + " " + str(x_pred[1]) + " 0.4")
-                        self.redis_client.set("ball_pred_pos", str(x_pred[0]) + " " + str(x_pred[1]) + " 0.4")
-                    #pass
+                    #if(x_pred[0] > -0.5 and pos[0] < 0.5 and pos[1] > -0.5 and pos[1] < 0.5): 
+                    self.redis_client.set("cs225a::robot::kuka_iiwa::tasks::ee_pos_des", str(x_pred[0]) + " " + str(x_pred[1]) + " " + str(x_pred[2]))
+                    self.redis_client.set("ball_pred_pos", str(x_pred[0]) + " " + str(x_pred[1]) + " " + str(x_pred[2]))
+        
         # Rigid body count (4 bytes)
         rigidBodyCount = int.from_bytes( data[offset:offset+4], byteorder='little' )
         offset += 4
