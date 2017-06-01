@@ -52,8 +52,8 @@ class Trajectory:
         if self.num_points >= MAX_POSITIONS:
             tx = np.linalg.lstsq(self.time, self.positions[:, 0])
             ty = np.linalg.lstsq(self.time, self.positions[:, 1])
-            tz = np.linalg.lstsq(self.time, self.positions[:, 2])
-            #tz = np.polyfit(self.time[0:MAX_POSITIONS,0], self.positions[0:MAX_POSITIONS, 2],2)
+            #tz = np.linalg.lstsq(self.time, self.positions[:, 2])
+            tz = np.polyfit(self.time[0:MAX_POSITIONS,0], self.positions[0:MAX_POSITIONS, 2],2)
             cx = tx[0][1]
             mx = tx[0][0]
             cy = ty[0][1]
@@ -63,11 +63,17 @@ class Trajectory:
             #pz2 = tz[0]
             #pz1 = tz[1]
             #pz0 = tz[2]
-            t = (0.1 - 1.0 * cx) / mx
+           # t = (0.1 - 1.0 * cx) / mx
+            t = cz / mz + 0.1 
             dt = (t - self.time[self.index,0])
+            # x_pred = mx * t + cx
+            # y_pred = my * t + cy
+            # z_pred = mz * t + cz
             x_pred = mx * t + cx
             y_pred = my * t + cy
-            z_pred = mz * t + cz
+            z_pred = 0.5 
+
+
             #print("time needed to reach to the prediction pos")
             #z_pred = pz2 * t * t + pz1 * t + pz0
             #print (x_pred, y_pred, z_pred)
