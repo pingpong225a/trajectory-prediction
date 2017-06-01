@@ -1,15 +1,17 @@
 import numpy as np 
 #import queue 
 import redis 
+import time
 
 playing_field = [] # (xmin,xmax) (ymin,ymax) (zmin, zmax)
 dest_x = 20 # x location at which the kuka is 
 
 
 # ()
-MAX_POSITIONS = 30
+MAX_POSITIONS = 30 # 30
 KUKA_POS_Y = 0 # in optitrack coordinates 
 KUKA_POS_Z = 2.85
+TABLE_POS_Z = 0.0 # 0.33
 
 class Trajectory: 
     def __init__(self):
@@ -23,6 +25,9 @@ class Trajectory:
         self.pred_hist = np.zeros((MAX_POSITIONS, 3))
         self.pred_weight = np.exp(np.linspace(-MAX_POSITIONS,-1,MAX_POSITIONS))
         self.pred_weight = self.pred_weight / np.sum(self.pred_weight)
+
+        # for debugging
+        self.debug_count = 0 
     # def lin_reg(X, Y):
 
     
@@ -37,18 +42,19 @@ class Trajectory:
     def filter_ball_des(self, a):
         x, y, z = a
         #x = 0.2
-        if y < -0.65:
-            y = -0.65
+        if y < -0.8:
+            y = -0.8
         if y > -0.2:
             y = -0.2
-        if z > 0.8:
-            z = 0.8
-        if z < 0.4:
-            z = 0.4
+        # if z > 0.8:
+        #     z = 0.8
+        # if z < 0.3:
+        #     z = 0.3
         return [x, y, z]
 
     def calc_trajectory(self):
         global MAX_POSITIONS
+        global TABLE_POS_Z
         if self.num_points >= MAX_POSITIONS:
             tx = np.linalg.lstsq(self.time, self.positions[:, 0])
             ty = np.linalg.lstsq(self.time, self.positions[:, 1])
@@ -58,20 +64,50 @@ class Trajectory:
             mx = tx[0][0]
             cy = ty[0][1]
             my = ty[0][0]
-            cz = tz[0][1]
-            mz = tz[0][0]
-            #pz2 = tz[0]
-            #pz1 = tz[1]
-            #pz0 = tz[2]
-           # t = (0.1 - 1.0 * cx) / mx
-            t = cz / mz + 0.1 
+            # cz = tz[0][1]
+            # mz = tz[0][0]
+            pz2 = tz[0]
+            # pz2 = -1.0 * 3.8
+            pz1 = tz[1]
+            pz0 = tz[2]
+            pz0 -= TABLE_POS_Z
+            t_old = (0.1 - 1.0 * cx) / mx
+            # t = cz / mz + 0.1 
+            roots = np.roots(tz[0:3])
+            # if pz0 > 0: 
+            #     # ignore 
+            #     return 
+            #print ("pz2 = ", pz2)
+      
+            t = np.max(np.real(roots))
+            if self.debug_count % 30 == 0:
+                #print ("t new = ", (t - self.time[self.index,0]))
+                #print ("t old = ", (t_old -  self.time[self.index,0]))
+                #print(self.positions[0:MAX_POSITIONS, :])
+                #print(self.time[0:MAX_POSITIONS,0])
+                x_landing = mx * (t) + cx
+                y_landing = my * (t) + cy
+                z_landing = 0
+               # print("predicting landing = ", [x_landing, y_landing, z_landing])
+            self.debug_count += 1
             dt = (t - self.time[self.index,0])
             # x_pred = mx * t + cx
             # y_pred = my * t + cy
             # z_pred = mz * t + cz
             x_pred = mx * t + cx
             y_pred = my * t + cy
-            z_pred = 0.5 
+            z_pred = 0.3
+
+            if x_pred < 0.05 or x_pred > 1.5 or pz2 > 0:
+                print("x_pred = ", x_pred)
+                print("pz2  = ", pz2)
+                self.positions = np.zeros((MAX_POSITIONS, 3))
+                self.time = np.ones((MAX_POSITIONS, 2))
+                self.index = 0
+                self.num_points = 0
+                time.sleep(0.5)
+                return [0.05, -0.62, 0.3]
+
 
 
             #print("time needed to reach to the prediction pos")
@@ -81,9 +117,9 @@ class Trajectory:
             self.pred_hist[self.index][0] = x_pred
             self.pred_hist[self.index][1] = y_pred
             self.pred_hist[self.index][2] = z_pred
-            x_pred = np.mean( self.pred_hist[:,0] ) * 0.1 + 0.9 * x_pred
-            y_pred = np.mean( self.pred_hist[:,1] ) * 0.1 + 0.9 * y_pred
-            z_pred = np.mean( self.pred_hist[:,2] ) * 0.1 + 0.9 * z_pred
+            # x_pred = np.mean( self.pred_hist[:,0] ) * 0.1 + 0.9 * x_pred
+            # y_pred = np.mean( self.pred_hist[:,1] ) * 0.1 + 0.9 * y_pred
+            # z_pred = np.mean( self.pred_hist[:,2] ) * 0.1 + 0.9 * z_pred
              
             return [x_pred, y_pred, z_pred] #if y_pred > -0.5 and y_pred < 0.5 else None        
         return None 

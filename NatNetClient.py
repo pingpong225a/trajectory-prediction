@@ -200,6 +200,8 @@ class NatNetClient:
                 # NOTE: currently not predicting in Z direction
                 self.trajectory.record_pos([pos[2], pos[0], pos[1]], frameNumber)
                 self.redis_client.set("ball_pos", str(pos[2]) + " " + str(pos[0]) + " " + str(pos[1]))
+                # if pos[1] <= 0.05:
+                #      self.redis_client.set("landing_pos", str(pos[2]) + " " + str(pos[0]) + " " + str(pos[1]))
                 x_pred = self.trajectory.calc_trajectory()
                 if x_pred != None:
                     #if(x_pred[0] > -0.5 and pos[0] < 0.5 and pos[1] > -0.5 and pos[1] < 0.5): 
