@@ -194,7 +194,7 @@ class NatNetClient:
             trace( "\tMarker", i, ":", pos[0],",", pos[1],",", pos[2] )
             #print( "\tMarker", i, ":", pos[0],",", pos[1],",", pos[2] )
             # Only record the position if there is only one marker detected
-            self.trajectory.push_ball(pos, frameNumber)
+            #self.trajectory.push_ball(pos, frameNumber)
 
             if(pos[2] > 0.2 and pos[2] < 2.0 and pos[0] > -0.7 and pos[0] < 0.3): 
                 # NOTE: currently not predicting in Z direction
