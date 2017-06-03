@@ -8,10 +8,12 @@ dest_x = 20 # x location at which the kuka is
 
 
 # ()
-MAX_POSITIONS = 30 # 30
+MAX_POSITIONS = 10 # 30
 KUKA_POS_Y = 0 # in optitrack coordinates 
-KUKA_POS_Z = 0.3 # 0.6  # 0.3
-TABLE_POS_Z = 0 # 0.33 # 0
+KUKA_POS_Z = 0.4 # 0.6  # 0.3
+TABLE_POS_Z = 0.07 # 0.33 # 0
+
+TRACK_BALL = True
 
 class Trajectory: 
     def __init__(self):
@@ -28,11 +30,15 @@ class Trajectory:
 
         # for debugging
         self.debug_count = 0 
-    # def lin_reg(X, Y):
 
     
     def record_pos(self, pos, time):
         global MAX_POSITIONS
+        global TRACK_BALL
+        if pos[2] < TABLE_POS_Z + 0.10:
+            TRACK_BALL = False
+        if not TRACK_BALL:
+            return
         self.positions[self.index, :] = pos[0:3] 
         self.time[self.index, 0] = time / 200.0
         self.index = (self.index + 1) % MAX_POSITIONS
@@ -45,8 +51,8 @@ class Trajectory:
         # if x > 0.5:
         #     x = 0.5
 
-        if y < -0.8:
-            y = -0.8
+        if y < -0.7:
+            y = -0.7
             
         if y > -0.2:
             y = -0.2
@@ -60,6 +66,12 @@ class Trajectory:
         global MAX_POSITIONS
         global TABLE_POS_Z
         global KUKA_POS_Z
+
+        global TRACK_BALL
+        if not TRACK_BALL:
+            time.sleep(0.8)
+            return [0.05, -0.62, KUKA_POS_Z] # return home
+
         if self.num_points >= MAX_POSITIONS:
             tx = np.linalg.lstsq(self.time, self.positions[:, 0])
             ty = np.linalg.lstsq(self.time, self.positions[:, 1])
@@ -78,21 +90,28 @@ class Trajectory:
             pz0 -= TABLE_POS_Z
             t_old = (0.1 - 1.0 * cx) / mx
             # t = cz / mz + 0.1 
-            roots = np.roots(tz[0:3])
+            #roots = np.roots(tz[0:3])
+            coeffi = [pz2, pz1, pz0]
+            roots = np.roots(coeffi)
+
             # if pz0 > 0: 
             #     # ignore 
             #     return 
             #print ("pz2 = ", pz2)
       
             t = np.max(np.real(roots))
-            if self.debug_count % 30 == 0:
+            if self.debug_count % MAX_POSITIONS == 0:
                 #print ("t new = ", (t - self.time[self.index,0]))
                 #print ("t old = ", (t_old -  self.time[self.index,0]))
-                #print(self.positions[0:MAX_POSITIONS, :])
-                #print(self.time[0:MAX_POSITIONS,0])
+                print(self.positions[0:MAX_POSITIONS, :])
+                print(self.time[0:MAX_POSITIONS,0])
+                x_pred = mx * t + cx
+                y_pred = my * t + cy
+                z_pred = KUKA_POS_Z
+                print(x_pred, y_pred, z_pred)
                 x_landing = mx * (t) + cx
                 y_landing = my * (t) + cy
-                z_landing = 0
+                z_landing = TABLE_POS_Z
 
                # print("predicting landing = ", [x_landing, y_landing, z_landing])
             self.debug_count += 1
@@ -100,6 +119,7 @@ class Trajectory:
             # x_pred = mx * t + cx
             # y_pred = my * t + cy
             # z_pred = mz * t + cz
+
             x_pred = mx * t + cx
             y_pred = my * t + cy
             z_pred = KUKA_POS_Z
@@ -107,14 +127,15 @@ class Trajectory:
             if x_pred < 0.05 or x_pred > 1.5 or pz2 > 0:
             #if x_pred < 0.05 or x_pred > 1.5: #or y < -0.8 or y > -0.2:
             #if pz2 > 0:
-                print("x_pred = ", x_pred)
-                print("pz2  = ", pz2)
+                #print("x_pred = ", x_pred)
+                #print("pz2  = ", pz2)
                 self.positions = np.zeros((MAX_POSITIONS, 3))
                 self.time = np.ones((MAX_POSITIONS, 2))
                 self.index = 0
                 self.num_points = 0
                 #time.sleep(0.2)
-                return [0.05, -0.62, KUKA_POS_Z]
+                return None
+                #return [0.05, -0.62, KUKA_POS_Z]
 
 
 
