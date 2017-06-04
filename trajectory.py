@@ -2,9 +2,9 @@ import numpy as np
 import redis 
 import time as pythontime
 
-WORKSPACE_MIN_X = 0.1 # 0.1
-WORKSPACE_MAX_X = 0.9  # 0.7
-WORKSPACE_MIN_Y = -0.75 #  -0.61
+WORKSPACE_MIN_X = -0.05 # 0.1
+WORKSPACE_MAX_X = 0.4  # 0.4
+WORKSPACE_MIN_Y = -0.7 #  -0.61
 WORKSPACE_MAX_Y =  -0.2 # -0.25
 
 STAGE_MIN_X = 0
@@ -20,8 +20,16 @@ TABLE_POS_Z = 0.07 # 0.33 # 0
 
 TRACK_BALL = True
 HOME_POS = [0.05, -0.62, KUKA_POS_Z]
+#HOME_POS = None
+
+HITTING_X_PLANE = 0.3
 
 wait_time = 0 
+GRAVITY = 9.8
+
+def trace(s):
+    print(s)
+    #pass
 
 class Trajectory: 
     def __init__(self):
@@ -45,7 +53,7 @@ class Trajectory:
         self.num_points = 0
 
     def going_away_from_kuka(self, mx):
-        return mx >= 0
+        return mx >= -1
 
     def location_within_workspace(self, x, y, z):
         global WORKSPACE_MIN_X
@@ -89,7 +97,7 @@ class Trajectory:
             if self.ball_hit_table(ball_pos):
                 wait_time = pythontime.time() + 1 
                 self.clear_history()
-                print("returning home")
+                trace("returning home")
                 return HOME_POS  
 
             self.record_pos(ball_pos, time)
@@ -109,29 +117,40 @@ class Trajectory:
                 pz0 -= TABLE_POS_Z
                 coeffi = [pz2, pz1, pz0]
                 roots = np.roots(coeffi) 
-                t = np.max(np.real(roots))
-                x_pred = mx * t + cx
-                y_pred = my * t + cy
-                z_pred = KUKA_POS_Z
+                t_landing = np.max(np.real(roots))
+                #x_pred = mx * t + cx  
+                #y_pred = my * t + cy
+                #z_pred = KUKA_POS_Z
+                
+                v_z = (2 * pz2 * t_landing + pz1 ) * -0.8
+                
+                t_hitting = (HITTING_X_PLANE - cx) / mx
+                x_pred = HITTING_X_PLANE
+                y_pred = my * t_hitting + cy
+                dt = t_hitting - t_landing
+                print('dt =',dt,'v_z =',v_z)
+                z_pred = TABLE_POS_Z + v_z * dt - 0.5 * GRAVITY * dt * dt
+                  
+ 
+                return [x_pred, y_pred, z_pred]
+                #if self.going_away_from_kuka(mx) or (not self.location_within_workspace(x_pred, y_pred, z_pred)):
+                #    if self.going_away_from_kuka(mx) and (not self.location_within_workspace(x_pred, y_pred, z_pred)):
+                #        trace("both")
+                #    elif self.going_away_from_kuka(mx):
+                #        trace("going away from kuka")
+                #    elif not self.location_within_workspace(x_pred, y_pred, z_pred):
+                #        trace("location outside workspace")
+                #        trace([x_pred, y_pred, z_pred])
 
-                if self.going_away_from_kuka(mx) or (not self.location_within_workspace(x_pred, y_pred, z_pred)):
-                    if self.going_away_from_kuka(mx) and (not self.location_within_workspace(x_pred, y_pred, z_pred)):
-                        print("both")
-                    elif self.going_away_from_kuka(mx):
-                        print("going away from kuka")
-                    elif not self.location_within_workspace(x_pred, y_pred, z_pred):
-                        print("location outside workspace")
-                        print([x_pred, y_pred, z_pred])
-
-                    print("returning home 2")
-                    self.clear_history() 
-                    return HOME_POS
-                else: 
-                    print("sending pred")
-                    print([x_pred, y_pred, z_pred])
-                    return [x_pred, y_pred, z_pred]
-       # else: 
-           # print("location outside stage")
+                #    trace("returning home 2")
+                #    self.clear_history() 
+                #    return HOME_POS
+                #else: 
+                #    trace("sending pred")
+                #    trace([x_pred, y_pred, z_pred])
+                #    return [x_pred, y_pred, z_pred]
+       #else: 
+             # trace("location outside stage")
 
         return None
 

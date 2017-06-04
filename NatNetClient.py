@@ -197,7 +197,7 @@ class NatNetClient:
             x_pred = self.trajectory.calc_trajectory([pos[2], pos[0], pos[1]], frameNumber)
             if x_pred != None:
                 self.redis_client.set("cs225a::robot::kuka_iiwa::tasks::ee_pos_des", str(x_pred[0]) + " " + str(x_pred[1]) + " " + str(x_pred[2]))
-                print("ball_pred_pos = ",  str(x_pred[0]) + " " + str(x_pred[1]) + " " + str(x_pred[2]))
+                #print("ball_pred_pos = ",  str(x_pred[0]) + " " + str(x_pred[1]) + " " + str(x_pred[2]))
                 self.redis_client.set("ball_pred_pos", str(x_pred[0]) + " " + str(x_pred[1]) + " " + str(x_pred[2]))
 
         # Rigid body count (4 bytes)
