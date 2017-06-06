@@ -372,7 +372,7 @@ class NatNetClient:
             wait_time, home_position = self.trajectory.wait_time()
             curr_time = pythontime.time() 
             time_left_to_wait =  wait_time - curr_time 
-            if time_left_to_wait >= 0 and time_left_to_wait <= 8:
+            if time_left_to_wait >= 0 and time_left_to_wait <= 2.5:
                 print("returning home....")
                 self.redis_client.set("cs225a::robot::kuka_iiwa::tasks::ee_pos_des", str(home_position[0]) + " " + str(home_position[1]) + " " + str(home_position[2]))
             #if time_left_to_wait >= 0:

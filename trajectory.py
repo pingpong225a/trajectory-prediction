@@ -139,6 +139,8 @@ class Trajectory:
             if  diff <= 0.1: 
                print("Start to record new data")
 
+
+
             self.record_pos(ball_pos, time)
 
             # Fit trajectory on ball path  
@@ -181,6 +183,6 @@ class Trajectory:
                 return None
         else:
             self.clear_history()
-            print("returning home..")
-            return HOME_POS
+            # print("returning home..")
+            # return HOME_POS
 
