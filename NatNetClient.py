@@ -1,6 +1,7 @@
 ﻿import socket
 import struct
 import redis 
+import time as pythontime
 from trajectory import Trajectory
 from threading import Thread
 
@@ -198,7 +199,7 @@ class NatNetClient:
             if x_pred != None:
                 self.redis_client.set("cs225a::robot::kuka_iiwa::tasks::ee_pos_des", str(x_pred[0]) + " " + str(x_pred[1]) + " " + str(x_pred[2]))
                 #print("ball_pred_pos = ",  str(x_pred[0]) + " " + str(x_pred[1]) + " " + str(x_pred[2]))
-                self.redis_client.set("ball_pred_pos", str(x_pred[0]) + " " + str(x_pred[1]) + " " + str(x_pred[2]))
+                #self.redis_client.set("ball_pred_pos", str(x_pred[0]) + " " + str(x_pred[1]) + " " + str(x_pred[2]))
 
         # Rigid body count (4 bytes)
         rigidBodyCount = int.from_bytes( data[offset:offset+4], byteorder='little' )
@@ -371,6 +372,16 @@ class NatNetClient:
             
     def __dataThreadFunction( self, socket ):
         while True:
+
+            # Check if should return home
+            wait_time, home_position = self.trajectory.wait_time()
+            curr_time = pythontime.time() 
+            time_left_to_wait =  wait_time - curr_time 
+            if time_left_to_wait >= 0 and time_left_to_wait <= 8:
+                print("returning home...")
+                self.redis_client.set("cs225a::robot::kuka_iiwa::tasks::ee_pos_des", str(home_position[0]) + " " + str(home_position[1]) + " " + str(home_position[2]))
+                
+
             # Block for input
             data, addr = socket.recvfrom( 32768 ) # 32k byte buffer size
             if( len( data ) > 0 ):
