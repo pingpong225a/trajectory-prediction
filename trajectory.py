@@ -34,7 +34,7 @@ TRACK_BALL = True
 HOME_POS = [0.05, -0.62, KUKA_POS_Z]
 
 ###################################################################
-HITTING_X_PLANE = 0.3 ######## Make sure HITTING_X_PLANE IS IN WORKING SPACE !!!!
+HITTING_X_PLANE = 0.4 ######## Make sure HITTING_X_PLANE IS IN WORKING SPACE !!!!
 #####################################################################################
 
 wait_time = 0 
