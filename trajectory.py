@@ -135,7 +135,8 @@ class Trajectory:
                print("hit table. waiting %f" % WAIT_TIME_AFTER_BOUNCE)
                return None   
 
-            if curr_time > wait_time + 0.001: 
+            diff = abs(wait_time - curr_time)
+            if  diff <= 0.1: 
                print("Start to record new data")
 
             self.record_pos(ball_pos, time)
@@ -154,6 +155,8 @@ class Trajectory:
                 pz0 = tz[2]
                 pz0 -= TABLE_POS_Z
                 coeffi = [pz2, pz1, pz0]
+                print(self.time)
+                print(self.positions)
                 roots = np.roots(coeffi) 
                 t_landing = np.max(np.real(roots))
                 x_landing = cx + mx * t_landing
@@ -178,5 +181,6 @@ class Trajectory:
                 return None
         else:
             self.clear_history()
+            print("returning home..")
             return HOME_POS
 

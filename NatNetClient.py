@@ -194,8 +194,6 @@ class NatNetClient:
             trace( "\tMarker", i, ":", pos[0],",", pos[1],",", pos[2] )
         
             self.redis_client.set("ball_pos", str(pos[2]) + " " + str(pos[0]) + " " + str(pos[1]))
-            print("ball position ")
-            print(pos)
             x_pred = self.trajectory.calc_trajectory([pos[2], pos[0], pos[1]], frameNumber)
             if x_pred != None:
                 self.redis_client.set("cs225a::robot::kuka_iiwa::tasks::ee_pos_des", str(x_pred[0]) + " " + str(x_pred[1]) + " " + str(x_pred[2]))
@@ -371,9 +369,12 @@ class NatNetClient:
     def __dataThreadFunction( self, socket ):
         while True:
             # Check if should return home
-            #wait_time, home_position = self.trajectory.wait_time()
-            #curr_time = pythontime.time() 
-            #time_left_to_wait =  wait_time - curr_time 
+            wait_time, home_position = self.trajectory.wait_time()
+            curr_time = pythontime.time() 
+            time_left_to_wait =  wait_time - curr_time 
+            if time_left_to_wait >= 0 and time_left_to_wait <= 8:
+                print("returning home....")
+                self.redis_client.set("cs225a::robot::kuka_iiwa::tasks::ee_pos_des", str(home_position[0]) + " " + str(home_position[1]) + " " + str(home_position[2]))
             #if time_left_to_wait >= 0:
             #    self.redis_client.set("cs225a::robot::kuka_iiwa::tasks::ee_pos_des", str(home_position[0]) + " " + str(home_position[1]) + " " + str(home_position[2]))
             # Block for input
