@@ -21,14 +21,16 @@ STAGE_MIN_Y = -0.7
 STAGE_MAX_Y = 0.1 
 STAGE_MIN_Z = -0.05
 
+TABLE_POS_Z = 0.07 #-0.00 # 0.07 # 0.33 # 0
+
 MAX_POSITIONS = 10 # 30
 KUKA_POS_Y = 0 # in optitrack coordinates 
-KUKA_POS_Z = 0.4 # 0.6  # 0.3
+KUKA_POS_Z = 0.30 + TABLE_POS_Z + 0.07 # 0.6  # 0.3
 
 
 ############ Calibration
 ###############################################################################
-TABLE_POS_Z = -0.00 # 0.07 # 0.33 # 0
+
 ###################################################################################
 TRACK_BALL = True
 HOME_POS = [0.05, -0.62, KUKA_POS_Z]
@@ -40,7 +42,7 @@ HITTING_X_PLANE = 0.35 ######## Make sure HITTING_X_PLANE IS IN WORKING SPACE !!
 wait_time = 0 
 GRAVITY = 9.8
 
-WAIT_TIME_AFTER_BOUNCE = 5 # ASK BEFORE CHANGING
+WAIT_TIME_AFTER_BOUNCE = 0.22 # ASK BEFORE CHANGING
 
 def trace(s):
     print(s)
@@ -57,7 +59,8 @@ class Trajectory:
     def wait_time(self):
         global wait_time
         global HOME_POS
-        return wait_time, HOME_POS
+        global WAIT_TIME_AFTER_BOUNCE
+        return wait_time, HOME_POS, WAIT_TIME_AFTER_BOUNCE
         # global wait_time 
         # curr_time = pythontime.time() 
         # time_left_to_wait =  wait_time - curr_time 
@@ -86,7 +89,7 @@ class Trajectory:
         global WORKSPACE_MAX_X
         global WORKSPACE_MIN_Y
         global WORKSPACE_MAX_Y
-        return y > WORKSPACE_MIN_Y and y < WORKSPACE_MAX_Y and z > WORKSPACE_MIN_Z and z < WORKSPACE_MAX_Z
+        return y >= WORKSPACE_MIN_Y and y <= WORKSPACE_MAX_Y and z >= WORKSPACE_MIN_Z and z <= WORKSPACE_MAX_Z
 
     def location_on_stage(self, pos):
         x, y, z = pos[0:3]
@@ -110,6 +113,20 @@ class Trajectory:
         if z_pos > z_max:
             return z_max
         return z_pos
+
+    def filter(self, x, y, z):
+        epsilon = 0.4
+        def apply_max_min_filter(val, min_val, max_val):
+            if val > max_val and val < max_val + epsilon:
+                return max_val
+            elif val < min_val and val > min_val - epsilon:
+                return min_val
+            else: 
+                return val
+        x = apply_max_min_filter(x, WORKSPACE_MIN_X, WORKSPACE_MAX_X)
+        y = apply_max_min_filter(y, WORKSPACE_MIN_Y, WORKSPACE_MAX_Y)
+        z = apply_max_min_filter(z, WORKSPACE_MIN_Z, WORKSPACE_MAX_Z)
+        return x, y, z
 
     def calc_trajectory(self, ball_pos, time):
         global MAX_POSITIONS
@@ -136,8 +153,9 @@ class Trajectory:
                return None   
 
             diff = abs(wait_time - curr_time)
-            if  diff <= 0.1: 
-               print("Start to record new data")
+            if  diff <= 0.2: 
+                pass
+               #print("Start to record new data")
 
 
 
@@ -157,8 +175,8 @@ class Trajectory:
                 pz0 = tz[2]
                 pz0 -= TABLE_POS_Z
                 coeffi = [pz2, pz1, pz0]
-                print(self.time)
-                print(self.positions)
+                # print(self.time)
+                # print(self.positions)
                 roots = np.roots(coeffi) 
                 t_landing = np.max(np.real(roots))
                 x_landing = cx + mx * t_landing
@@ -173,9 +191,22 @@ class Trajectory:
                 
                 z_pred = TABLE_POS_Z + v_z * dt - 0.5 * GRAVITY * dt * dt
 
+
+                # if mx < -3.2:
+                #     print("wait time = 0.5 , mx = ", mx)
+                #     WAIT_TIME_AFTER_BOUNCE = 0.22
+                # else:
+                #     print("wait time = 1 , mx = ", mx)
+                #     WAIT_TIME_AFTER_BOUNCE = 1
+
                 print("%f %f %f"  % (x_pred, y_pred, z_pred))
-                if not self.location_within_workspace(x_pred, y_pred, z_pred):
+                #print("mx = ", mx)
+                x_pred, y_pred, z_pred = self.filter(x_pred, y_pred, z_pred)
+                print("after filter = ", "%f %f %f"  % (x_pred, y_pred, z_pred))
+                if not self.location_within_workspace(x_pred, y_pred, z_pred) or mx > -1:
                     print("Not within workspace")
+                    if mx > -1:
+                        print("going opposite direction")
                     return None 
 
                 return [x_pred, y_pred, z_pred]
